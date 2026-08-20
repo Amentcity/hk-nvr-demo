@@ -1,0 +1,17 @@
+target/
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+*.log
+*.mp4
+*.ps
+*.dav
+recordings/
+streams/
+.DS_Store
+
+# 海康 SDK 本地库（体积大，需自行从官网下载）
+src/main/resources/lib/win64/
+src/main/resources/lib/linux64/

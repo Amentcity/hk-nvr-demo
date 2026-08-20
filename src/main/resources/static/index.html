@@ -1,0 +1,373 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>海康 NVR 监控 Demo</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+            margin: 0;
+            padding: 24px;
+            background: #0f1419;
+            color: #e7ecf1;
+        }
+        h1 { margin-top: 0; font-weight: 600; }
+        .status {
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: #1a2332;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .status.ok { border-left: 4px solid #3dd68c; }
+        .status.warn { border-left: 4px solid #f5a623; }
+        section {
+            background: #1a2332;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        section h2 { margin-top: 0; font-size: 18px; }
+        .camera-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+        .camera-card {
+            background: #111822;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #2a3544;
+        }
+        .camera-card header {
+            padding: 10px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        .camera-card video {
+            width: 100%;
+            height: 220px;
+            object-fit: contain;
+            background: #000;
+            display: block;
+        }
+        .camera-card footer {
+            padding: 10px 12px;
+            display: flex;
+            gap: 8px;
+        }
+        button, .btn {
+            background: #2d6cdf;
+            color: #fff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        button.secondary { background: #3a4658; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+        label { display: block; font-size: 13px; margin-bottom: 6px; color: #aab4c0; }
+        input[type="datetime-local"], select {
+            background: #111822;
+            border: 1px solid #2a3544;
+            color: #e7ecf1;
+            padding: 8px 10px;
+            border-radius: 6px;
+            min-width: 220px;
+        }
+        .checkbox-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .checkbox-list label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0;
+            color: #e7ecf1;
+        }
+        #downloadResult {
+            margin-top: 16px;
+            font-size: 13px;
+            white-space: pre-wrap;
+            background: #111822;
+            padding: 12px;
+            border-radius: 8px;
+            min-height: 48px;
+        }
+        .badge {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #2a3544;
+        }
+        .badge.live { background: #1f4d3a; color: #3dd68c; }
+    </style>
+</head>
+<body>
+<h1>海康 NVR 监控 Demo</h1>
+<div id="statusBar" class="status warn">正在检测服务状态...</div>
+
+<section>
+    <h2>实时预览（RTSP）</h2>
+    <div class="form-row" style="align-items:flex-end;">
+        <div>
+            <label>选择要播放的通道（可多选）</label>
+            <div id="liveChecks" class="checkbox-list"></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button onclick="playSelected()">播放选中</button>
+            <button class="secondary" onclick="stopSelected()">停止选中</button>
+            <button class="secondary" onclick="stopAll()">全部停止</button>
+        </div>
+    </div>
+    <div id="cameraGrid" class="camera-grid"></div>
+</section>
+
+<section>
+    <h2>录像片段下载</h2>
+    <p style="font-size:13px;color:#aab4c0;margin-top:0;">
+        选择多个摄像头与时间段，通过海康 SDK 从 NVR 下载录像并保存到磁盘（可选转 MP4）。
+    </p>
+    <div class="form-row">
+        <div>
+            <label>选择摄像头（可多选）</label>
+            <div id="cameraChecks" class="checkbox-list"></div>
+        </div>
+    </div>
+    <div class="form-row">
+        <div>
+            <label for="startTime">开始时间</label>
+            <input type="datetime-local" id="startTime" step="1">
+        </div>
+        <div>
+            <label for="endTime">结束时间</label>
+            <input type="datetime-local" id="endTime" step="1">
+        </div>
+    </div>
+    <div class="form-row">
+        <div>
+            <label for="subDir">保存子目录（可选）</label>
+            <input type="text" id="subDir" placeholder="例如 incident-20250818"
+                    style="background:#111822;border:1px solid #2a3544;color:#e7ecf1;padding:8px 10px;border-radius:6px;">
+        </div>
+    </div>
+    <button id="downloadBtn" onclick="downloadClips()">下载选中片段</button>
+    <div id="downloadResult"></div>
+</section>
+
+<script>
+    let cameras = [];
+    let playingIds = new Set();
+
+    async function fetchStatus() {
+        const res = await fetch('/api/status');
+        const json = await res.json();
+        const bar = document.getElementById('statusBar');
+        const sdk = json.data.sdkInitialized;
+        const loggedIn = json.data.loggedIn;
+        if (sdk) {
+            bar.className = 'status ok';
+            bar.textContent = 'SDK 已初始化' + (loggedIn ? '，NVR 已登录' : '');
+        } else {
+            bar.className = 'status warn';
+            bar.textContent = 'SDK 未就绪（实时预览仍可用；录像下载需配置海康 SDK 本地库）';
+        }
+    }
+
+    async function loadCameras() {
+        const res = await fetch('/api/cameras');
+        const json = await res.json();
+        cameras = json.data || [];
+        renderCameras();
+        renderLiveChecks();
+        renderCameraChecks();
+    }
+
+    function renderLiveChecks() {
+        const box = document.getElementById('liveChecks');
+        box.innerHTML = cameras.map(cam => `
+            <label>
+                <input type="checkbox" name="liveCam" value="${cam.id}">
+                ${cam.name} (CH${cam.channel})
+            </label>
+        `).join('');
+    }
+
+    function renderCameras() {
+        const grid = document.getElementById('cameraGrid');
+        grid.innerHTML = cameras.map(cam => `
+            <div class="camera-card" id="card-${cam.id}" style="display:none;">
+                <header>
+                    <span>${cam.name}</span>
+                    <span class="badge" id="badge-${cam.id}">通道 ${cam.channel}</span>
+                </header>
+                <video id="video-${cam.id}" controls autoplay muted playsinline></video>
+                <footer>
+                    <button onclick="playByIds(['${cam.id}'])">开始预览</button>
+                    <button class="secondary" onclick="stopByIds(['${cam.id}'])">停止</button>
+                </footer>
+            </div>
+        `).join('');
+    }
+
+    function renderCameraChecks() {
+        const box = document.getElementById('cameraChecks');
+        box.innerHTML = cameras.map(cam => `
+            <label>
+                <input type="checkbox" name="cam" value="${cam.id}" checked>
+                ${cam.name} (CH${cam.channel})
+            </label>
+        `).join('');
+    }
+
+    function getSelectedLiveIds() {
+        return Array.from(document.querySelectorAll('input[name=liveCam]:checked')).map(el => el.value);
+    }
+
+    async function playSelected() {
+        const ids = getSelectedLiveIds();
+        if (!ids.length) {
+            alert('请至少选择一个通道');
+            return;
+        }
+        await playByIds(ids);
+    }
+
+    async function stopSelected() {
+        const ids = getSelectedLiveIds();
+        if (!ids.length) {
+            alert('请至少选择一个通道');
+            return;
+        }
+        await stopByIds(ids);
+    }
+
+    async function playByIds(cameraIds) {
+        const res = await fetch('/api/live/play', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cameraIds, substream: true })
+        });
+        const json = await res.json();
+        if (!json.success) {
+            alert('播放失败: ' + json.message);
+            return;
+        }
+        json.data.forEach(item => {
+            const card = document.getElementById('card-' + item.cameraId);
+            const video = document.getElementById('video-' + item.cameraId);
+            const badge = document.getElementById('badge-' + item.cameraId);
+            if (card) card.style.display = '';
+            if (video) {
+                video.src = item.streamUrl;
+                video.play().catch(() => {});
+            }
+            if (badge) {
+                badge.className = 'badge live';
+                badge.textContent = '直播中';
+            }
+            playingIds.add(item.cameraId);
+        });
+    }
+
+    async function stopByIds(cameraIds) {
+        await fetch('/api/live/stop', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cameraIds })
+        });
+        cameraIds.forEach(cameraId => {
+            resetCameraCard(cameraId);
+            const card = document.getElementById('card-' + cameraId);
+            if (card) card.style.display = 'none';
+            playingIds.delete(cameraId);
+        });
+    }
+
+    async function stopAll() {
+        await fetch('/api/live/stop/all', { method: 'POST' });
+        const ids = Array.from(playingIds);
+        playingIds.clear();
+        ids.forEach(cameraId => resetCameraCard(cameraId));
+        document.querySelectorAll('.camera-card').forEach(el => el.style.display = 'none');
+    }
+
+    function resetCameraCard(cameraId) {
+        const video = document.getElementById('video-' + cameraId);
+        const badge = document.getElementById('badge-' + cameraId);
+        if (video) {
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+        }
+        if (badge) {
+            badge.className = 'badge';
+            const cam = cameras.find(c => c.id === cameraId);
+            badge.textContent = cam ? '通道 ' + cam.channel : '';
+        }
+    }
+
+    function toApiTime(datetimeLocalValue) {
+        if (!datetimeLocalValue) return null;
+        const normalized = datetimeLocalValue.replace('T', ' ');
+        if (normalized.length === 16) return normalized + ':00';
+        return normalized;
+    }
+
+    async function downloadClips() {
+        const selected = Array.from(document.querySelectorAll('input[name=cam]:checked')).map(el => el.value);
+        const startTime = toApiTime(document.getElementById('startTime').value);
+        const endTime = toApiTime(document.getElementById('endTime').value);
+        const subDir = document.getElementById('subDir').value.trim();
+        const resultBox = document.getElementById('downloadResult');
+        const btn = document.getElementById('downloadBtn');
+
+        if (!selected.length) {
+            resultBox.textContent = '请至少选择一个摄像头';
+            return;
+        }
+        if (!startTime || !endTime) {
+            resultBox.textContent = '请填写开始和结束时间';
+            return;
+        }
+
+        btn.disabled = true;
+        resultBox.textContent = '正在下载，请稍候...';
+
+        try {
+            const res = await fetch('/api/clips/download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cameraIds: selected, startTime, endTime, subDir: subDir || null })
+            });
+            const json = await res.json();
+            if (!json.success) {
+                resultBox.textContent = '失败: ' + json.message;
+                return;
+            }
+            resultBox.textContent = json.data.map(r =>
+                (r.success ? '[成功]' : '[失败]') + ' ' + r.cameraName + ': ' + (r.filePath || r.message)
+            ).join('\n');
+        } catch (e) {
+            resultBox.textContent = '请求异常: ' + e.message;
+        } finally { btn.disabled = false; }
+    }
+
+    fetchStatus();
+    loadCameras();
+</script>
+</body>
+</html>

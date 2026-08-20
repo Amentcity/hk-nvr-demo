@@ -1,0 +1,45 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: hk-nvr-demo
+
+hikvision:
+  # NVR 设备连接信息
+  device:
+    ip: 10.0.14.11
+    port: 8000
+    username: admin
+    password: hk789789
+    # RTSP 端口，实时预览走 RTSP + FFmpeg
+    rtsp-port: 554
+
+  # SDK 本地库目录（相对于项目根目录或绝对路径）
+  sdk:
+    lib-path: src/main/resources/lib/linux_arm64
+    log-path: logs/hksdk
+    connect-timeout-ms: 3000
+    reconnect-interval-ms: 10000
+
+  # 摄像头通道配置（通道号从 1 开始，对应 NVR 上的通道）
+  cameras:
+    - id: cam-1
+      name: 大门
+      channel: 1
+    - id: cam-2
+      name: 停车场
+      channel: 2
+    - id: cam-3
+      name: 走廊
+      channel: 3
+
+  # 录像片段保存目录
+  recording:
+    save-dir: recordings
+    # 下载完成后是否用 FFmpeg 将 PS/DAV 转为 MP4（需安装 FFmpeg 并加入 PATH）
+    convert-to-mp4: true
+
+  # FFmpeg 可执行文件路径，留空则从 PATH 查找
+  ffmpeg:
+    path: ffmpeg
