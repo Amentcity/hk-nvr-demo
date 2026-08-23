@@ -1,0 +1,26 @@
+groups:
+- name: nvr-alerts
+  rules:
+  - alert: NvrServiceDown
+    expr: up{job="nvr-service"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: NVR Backend Offline
+
+  - alert: StreamGatewayDown
+    expr: up{job="stream-gateway"} == 0
+    for: 30s
+    labels:
+      severity: critical
+    annotations:
+      summary: WebRTC Gateway Offline
+
+  - alert: NvrDeviceOffline
+    expr: nvr_device_online == 0
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: NVR device offline
