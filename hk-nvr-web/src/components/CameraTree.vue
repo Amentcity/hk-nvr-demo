@@ -1,9 +1,24 @@
 <template>
-  <el-tree :data="cameras" node-key="id" @node-click="select" />
+  <el-card class="camera-tree">
+    <el-input v-model="keyword" placeholder="搜索摄像头" />
+    <el-tree :data="filtered" node-key="id" @node-click="selectCamera" />
+  </el-card>
 </template>
 
 <script setup lang="ts">
-defineProps<{cameras:any[]}>()
-const emit=defineEmits(['open'])
-function select(camera:any){emit('open',camera)}
+import { computed, ref } from 'vue'
+
+const props = defineProps<{ cameras:any[] }>()
+const emit = defineEmits(['select'])
+const keyword = ref('')
+
+const filtered = computed(()=>
+  keyword.value
+    ? props.cameras.filter(item=>item.name.includes(keyword.value))
+    : props.cameras
+)
+
+function selectCamera(camera:any){
+  emit('select', camera)
+}
 </script>
