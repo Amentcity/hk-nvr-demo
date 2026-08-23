@@ -31,13 +31,14 @@ public class CameraService {
             return nvrCameras;
         }
 
-        return properties.getCameras().stream()
-                .map(c -> CameraInfo.builder()
-                        .id(c.getId())
-                        .name(c.getName())
-                        .channel(c.getChannel())
-                        .build())
-                .collect(Collectors.toList());
+//        return properties.getCameras().stream()
+//                .map(c -> CameraInfo.builder()
+//                        .id(c.getId())
+//                        .name(c.getName())
+//                        .channel(c.getChannel())
+//                        .build())
+//                .collect(Collectors.toList());
+        return nvrCameras;
     }
 
     public HikvisionProperties.CameraConfig getCameraById(String cameraId) {
@@ -73,6 +74,7 @@ public class CameraService {
 
             HCNetSDK.NET_DVR_IPPARACFG_V40 deviceConfig = new HCNetSDK.NET_DVR_IPPARACFG_V40();
             deviceConfig.dwSize = deviceConfig.size();
+            deviceConfig.write();
 
             IntByReference bytesReturned = new IntByReference();
             boolean ok = sdk.NET_DVR_GetDVRConfig(
@@ -84,36 +86,99 @@ public class CameraService {
                     bytesReturned);
 
             if (!ok) {
+                log.warn("获取IP通道配置失败, 错误码: {}", sdk.NET_DVR_GetLastError());
                 return Collections.emptyList();
             }
 
-            int startChannel = deviceConfig.dwStartDChan & 0xFF;
-            int channelCount = deviceConfig.dwAChanNum & 0xFF;
-            if (channelCount == 0) {
-                return Collections.emptyList();
+            deviceConfig.read();
+
+            int startChannel = deviceConfig.dwStartDChan;
+            int channelCount = deviceConfig.dwDChanNum;
+
+            // 优先用数字通道数；为0则遍历IP设备数组
+            if (channelCount > 0) {
+                return buildCamerasByChannelRange(startChannel, channelCount, deviceConfig);
+            } else {
+                log.info("dwDChanNum为0，回退到遍历struIPDevInfo");
+                return buildCamerasFromIPDevInfo(deviceConfig);
             }
-
-            List<CameraInfo> cameras = new ArrayList<>();
-            for (int channel = startChannel; channel < startChannel + channelCount; channel++) {
-                final int currentChannel = channel;
-                HikvisionProperties.CameraConfig preferred = properties.getCameras().stream()
-                        .filter(c -> c.getChannel() == currentChannel)
-                        .findFirst()
-                        .orElse(null);
-
-                String id = preferred != null && preferred.getId() != null ? preferred.getId() : "cam-" + currentChannel;
-                String name = preferred != null && preferred.getName() != null ? preferred.getName() : "Camera " + currentChannel;
-
-                cameras.add(CameraInfo.builder()
-                        .id(id)
-                        .name(name)
-                        .channel(currentChannel)
-                        .build());
-            }
-            return cameras;
         } catch (Exception e) {
             log.warn("Failed to load camera list from NVR, falling back to configured list: {}", e.getMessage());
             return Collections.emptyList();
         }
     }
+
+    /** 按通道号区间构建（NVR数字通道） */
+    private List<CameraInfo> buildCamerasByChannelRange(int startChannel, int channelCount,
+                                                        HCNetSDK.NET_DVR_IPPARACFG_V40 deviceConfig) {
+        List<CameraInfo> cameras = new ArrayList<>();
+        for (int i = 0; i < channelCount; i++) {
+            int currentChannel = startChannel + i;
+            String ip = resolveIpByChannel(deviceConfig, currentChannel, startChannel);
+
+            HikvisionProperties.CameraConfig preferred = findPreferred(currentChannel);
+            String id = preferred != null && preferred.getId() != null ? preferred.getId() : "cam-" + currentChannel;
+            String name = preferred != null && preferred.getName() != null ? preferred.getName() : "Camera " + currentChannel;
+
+            cameras.add(CameraInfo.builder()
+                    .id(id)
+                    .name(name)
+                    .channel(currentChannel)
+                    .ip(ip)
+                    .build());
+        }
+        return cameras;
+    }
+
+    /** 遍历已启用的IP设备构建 */
+    private List<CameraInfo> buildCamerasFromIPDevInfo(HCNetSDK.NET_DVR_IPPARACFG_V40 deviceConfig) {
+        List<CameraInfo> cameras = new ArrayList<>();
+        int startChannel = deviceConfig.dwStartDChan;
+
+        for (int i = 0; i < deviceConfig.struIPDevInfo.length; i++) {
+            HCNetSDK.NET_DVR_IPDEVINFO_V31 dev = deviceConfig.struIPDevInfo[i];
+            if (dev.byEnable == 0) {
+                continue;
+            }
+
+            int currentChannel = startChannel + i;
+            String ip = new String(dev.struIP.sIpV4).trim();
+
+            HikvisionProperties.CameraConfig preferred = findPreferred(currentChannel);
+            String id = preferred != null && preferred.getId() != null ? preferred.getId() : "cam-" + currentChannel;
+            String name = preferred != null && preferred.getName() != null ? preferred.getName() : "Camera " + currentChannel;
+
+            cameras.add(CameraInfo.builder()
+                    .id(id)
+                    .name(name)
+                    .channel(currentChannel)
+                    .ip(ip)
+                    .build());
+        }
+        return cameras;
+    }
+
+    /** 根据通道号从IP设备数组中反查IP */
+    private String resolveIpByChannel(HCNetSDK.NET_DVR_IPPARACFG_V40 deviceConfig,
+                                      int currentChannel, int startChannel) {
+        int index = currentChannel - startChannel;
+        if (index < 0 || index >= deviceConfig.struIPDevInfo.length) {
+            return "";
+        }
+        HCNetSDK.NET_DVR_IPDEVINFO_V31 dev = deviceConfig.struIPDevInfo[index];
+        if (dev.byEnable == 0) {
+            return "";
+        }
+        return new String(dev.struIP.sIpV4).trim();
+    }
+
+    private HikvisionProperties.CameraConfig findPreferred(int channel) {
+        return properties.getCameras().stream()
+                .filter(c -> c.getChannel() == channel)
+                .findFirst()
+                .orElse(null);
+    }
+
+
+
 }

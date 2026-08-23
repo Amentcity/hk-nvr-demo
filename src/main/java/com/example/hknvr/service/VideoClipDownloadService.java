@@ -225,7 +225,7 @@ public class VideoClipDownloadService {
             do {
                 Thread.sleep(500);
                 IntByReference posRef = new IntByReference(0);
-                sdk.NET_DVR_PlayBackControl(handle, HCNetSDK.NET_DVR_PLAYGETPOS, 0, posRef.getPointer());
+//                sdk.NET_DVR_PlayBackControl(handle, HCNetSDK.NET_DVR_PLAYGETPOS, 0, posRef.getPointer());
                 progress = posRef.getValue();
                 log.debug("Download progress camera {}: {}%", camera.getName(), progress);
             } while (progress >= 0 && progress < 100);

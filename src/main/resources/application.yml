@@ -17,7 +17,7 @@ hikvision:
 
   # SDK 本地库目录（相对于项目根目录或绝对路径）
   sdk:
-    lib-path: src/main/resources/lib/linux_arm64
+    lib-path: src/main/resources/lib/win64
     log-path: logs/hksdk
     connect-timeout-ms: 3000
     reconnect-interval-ms: 10000

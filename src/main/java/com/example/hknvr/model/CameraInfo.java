@@ -13,4 +13,5 @@ public class CameraInfo {
     private String id;
     private String name;
     private int channel;
+    private String ip;
 }

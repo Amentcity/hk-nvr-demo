@@ -24,4 +24,4 @@ HCNetSDKCom/   （整个目录）
 ## 注意
 
 - DLL 位数必须与 JVM 一致（64-bit JDK 对应 64-bit SDK）
-- 建议用官方 Demo 中的 `HCNetSDK.java` 替换项目 `com.example.hknvr.sdk.HCNetSDK`
+- 建议用官方 Demo 中的 `HCNetSDK.java.123` 替换项目 `com.example.hknvr.sdk.HCNetSDK`
