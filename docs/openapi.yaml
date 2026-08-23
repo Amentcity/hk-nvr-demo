@@ -1,0 +1,20 @@
+openapi: 3.0.0
+info:
+  title: Enterprise NVR API
+  version: 1.0.0
+paths:
+  /api/auth/login:
+    post:
+      summary: Login
+  /api/device/list:
+    get:
+      summary: Device list
+  /api/camera/list:
+    get:
+      summary: Camera list
+  /api/stream/start/{cameraId}:
+    post:
+      summary: Start stream
+  /api/playback/start:
+    post:
+      summary: Start playback
