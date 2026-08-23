@@ -1,0 +1,23 @@
+{
+  "dashboard": {
+    "title": "Enterprise NVR Monitoring",
+    "tags": ["nvr", "webrtc", "ffmpeg"],
+    "panels": [
+      {
+        "title": "NVR Online Devices",
+        "type": "stat",
+        "targets": [{"expr": "sum(nvr_device_online)"}]
+      },
+      {
+        "title": "WebRTC Connections",
+        "type": "graph",
+        "targets": [{"expr": "webrtc_sessions_total"}]
+      },
+      {
+        "title": "FFmpeg Running Tasks",
+        "type": "graph",
+        "targets": [{"expr": "ffmpeg_process_count"}]
+      }
+    ]
+  }
+}
