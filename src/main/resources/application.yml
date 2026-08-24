@@ -15,9 +15,10 @@ hikvision:
     rtsp-port: ${HIK_RTSP_PORT:554}
 
   # SDK 配置
+  # 支持开发机、服务器、Docker部署，不再依赖固定目录
   sdk:
-    lib-path: ${HIK_SDK_PATH}
-    log-path: ${HIK_SDK_LOG_PATH:/data/log/hksdk}
+    lib-path: ${HIK_SDK_PATH:./lib/win64}
+    log-path: ${HIK_SDK_LOG_PATH:./logs/hksdk}
     connect-timeout-ms: ${HIK_CONNECT_TIMEOUT_MS:3000}
     reconnect-interval-ms: ${HIK_RECONNECT_INTERVAL_MS:10000}
 
@@ -26,7 +27,7 @@ hikvision:
 
   # 录像配置
   recording:
-    save-dir: ${VIDEO_SAVE_DIR:/data/video}
+    save-dir: ${VIDEO_SAVE_DIR:./data/video}
     convert-to-mp4: ${VIDEO_CONVERT_MP4:true}
 
   # FFmpeg配置
