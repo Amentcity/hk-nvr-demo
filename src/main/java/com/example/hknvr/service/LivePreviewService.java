@@ -1,6 +1,7 @@
 package com.example.hknvr.service;
 
 import com.example.hknvr.config.HikvisionProperties;
+import com.example.hknvr.model.CameraInfo;
 import com.example.hknvr.model.LivePlayResult;
 import com.example.hknvr.util.RtspUrlBuilder;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +38,7 @@ public class LivePreviewService {
         }
         List<LivePlayResult> results = new ArrayList<>();
         for (String cameraId : cameraIds) {
-            HikvisionProperties.CameraConfig camera = cameraService.getCameraById(cameraId);
+            CameraInfo camera = cameraService.getCameraById(cameraId);
             String rtspUrl = buildRtspStreamUrl(cameraId, subStream);
             results.add(LivePlayResult.builder()
                     .cameraId(cameraId)
@@ -52,7 +53,7 @@ public class LivePreviewService {
     }
 
     public String buildRtspStreamUrl(String cameraId, boolean subStream) {
-        HikvisionProperties.CameraConfig camera = cameraService.getCameraById(cameraId);
+        CameraInfo camera = cameraService.getCameraById(cameraId);
         return subStream
                 ? RtspUrlBuilder.buildSubStreamUrl(properties, camera.getChannel())
                 : RtspUrlBuilder.buildMainStreamUrl(properties, camera.getChannel());

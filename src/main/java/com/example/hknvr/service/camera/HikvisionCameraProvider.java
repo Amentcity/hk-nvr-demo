@@ -1,6 +1,5 @@
 package com.example.hknvr.service.camera;
 
-import com.example.hknvr.config.HikvisionProperties;
 import com.example.hknvr.model.CameraInfo;
 import com.example.hknvr.sdk.HCNetSDK;
 import com.example.hknvr.sdk.HikSdkManager;
@@ -19,11 +18,9 @@ import java.util.List;
 @Primary
 public class HikvisionCameraProvider implements CameraProvider {
 
-    private final HikvisionProperties properties;
     private final DeviceSessionService deviceSessionService;
 
-    public HikvisionCameraProvider(HikvisionProperties properties, DeviceSessionService deviceSessionService) {
-        this.properties = properties;
+    public HikvisionCameraProvider(DeviceSessionService deviceSessionService) {
         this.deviceSessionService = deviceSessionService;
     }
 

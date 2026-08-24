@@ -1,8 +1,13 @@
 package com.example.hknvr.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * 设备配置请求DTO
  */
+@Setter
+@Getter
 public class DeviceConfigRequest {
 
     /** 登录ID（通过登录接口获取） */
@@ -15,13 +20,4 @@ public class DeviceConfigRequest {
         this.userId = userId;
     }
 
-    // ==================== Getter & Setter ====================
-
-    public int getUserId() {
-        return userId;
-    }
-
-    public void setUserId(int userId) {
-        this.userId = userId;
-    }
 }

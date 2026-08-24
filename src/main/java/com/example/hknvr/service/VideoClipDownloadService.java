@@ -1,8 +1,7 @@
 package com.example.hknvr.service;
 
 import com.example.hknvr.config.HikvisionProperties;
-import com.example.hknvr.model.ClipDownloadRequest;
-import com.example.hknvr.model.ClipDownloadResult;
+import com.example.hknvr.model.*;
 import com.example.hknvr.sdk.HCNetSDK;
 import com.example.hknvr.sdk.HikSdkManager;
 import com.sun.jna.ptr.IntByReference;
@@ -21,11 +20,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.example.hknvr.model.RecordingSessionStartResult;
-import com.example.hknvr.model.RecordingSessionStatus;
-import com.example.hknvr.model.RecordingStartRequest;
-import com.example.hknvr.model.RecordingStopRequest;
-import com.example.hknvr.model.RecordingStopResult;
 import lombok.Getter;
 
 /**
@@ -185,7 +179,7 @@ public class VideoClipDownloadService {
 
     private ClipDownloadResult downloadSingleClip(int userId, String cameraId,
                                                   LocalDateTime start, LocalDateTime end, File saveDir) {
-        HikvisionProperties.CameraConfig camera = cameraService.getCameraById(cameraId);
+        CameraInfo camera = cameraService.getCameraById(cameraId);
         String fileName = String.format("%s_ch%d_%s_%s.dav",
                 camera.getId(),
                 camera.getChannel(),
@@ -259,7 +253,7 @@ public class VideoClipDownloadService {
         }
     }
 
-    private ClipDownloadResult failResult(HikvisionProperties.CameraConfig camera, String message) {
+    private ClipDownloadResult failResult(CameraInfo camera, String message) {
         return ClipDownloadResult.builder()
                 .cameraId(camera.getId())
                 .cameraName(camera.getName())

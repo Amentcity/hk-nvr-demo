@@ -1,9 +1,7 @@
 package com.example.hknvr.service;
 
-import com.example.hknvr.sdk.DeviceTreeManager;
-import com.example.hknvr.sdk.DeviceTreeManager.ChannelInfo;
-import com.example.hknvr.sdk.DeviceTreeManager.DeviceInfo;
-import com.example.hknvr.sdk.DeviceTreeManager.DeviceSession;
+import com.example.hknvr.sdk.HikSdkManager;
+import com.example.hknvr.sdk.HikSdkManager.*;
 import com.example.hknvr.service.camera.ChannelCameraConverter;
 import com.example.hknvr.service.camera.NvrCameraRegistry;
 import com.example.hknvr.model.CameraInfo;
@@ -20,21 +18,21 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class DeviceTreeService {
 
-    private final DeviceTreeManager manager;
+    private final HikSdkManager manager;
     private final ChannelCameraConverter converter;
     private final NvrCameraRegistry cameraRegistry;
 
     private final Map<Integer, DeviceSession> sessionCache = new ConcurrentHashMap<>();
 
     public DeviceTreeService(
-            DeviceTreeManager manager,
+            HikSdkManager manager,
             ChannelCameraConverter converter,
             NvrCameraRegistry cameraRegistry
     ) {
         this.manager = manager;
         this.converter = converter;
         this.cameraRegistry = cameraRegistry;
-        this.manager.initSDK();
+        this.manager.init();
     }
 
     public int login(String ipAddress, int port, String username, String password) {

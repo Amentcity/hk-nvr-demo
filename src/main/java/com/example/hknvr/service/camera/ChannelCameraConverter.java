@@ -1,7 +1,7 @@
 package com.example.hknvr.service.camera;
 
 import com.example.hknvr.model.CameraInfo;
-import com.example.hknvr.sdk.DeviceTreeManager.ChannelInfo;
+import com.example.hknvr.sdk.HikSdkManager;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -13,14 +13,14 @@ import java.util.List;
 @Component
 public class ChannelCameraConverter {
 
-    public List<CameraInfo> convert(String nvrId, List<ChannelInfo> channels) {
+    public List<CameraInfo> convert(String nvrId, List<HikSdkManager.ChannelInfo> channels) {
         List<CameraInfo> cameras = new ArrayList<>();
 
         if (channels == null) {
             return cameras;
         }
 
-        for (ChannelInfo channel : channels) {
+        for (HikSdkManager.ChannelInfo channel : channels) {
             CameraInfo camera = CameraInfo.builder()
                     .id(buildId(nvrId, channel.channelNo))
                     .name(channel.channelName)

@@ -50,7 +50,7 @@ public class NvrController {
         return ApiResponse.ok(data);
     }
 
-    @GetMapping("/cameras")
+    @GetMapping("/cameras/old")
     public ApiResponse<List<CameraInfo>> listCameras() {
         return ApiResponse.ok(cameraService.listCameras());
     }

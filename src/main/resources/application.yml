@@ -8,26 +8,27 @@ spring:
 hikvision:
   # NVR 设备连接信息（通过环境变量注入）
   device:
-    ip: ${HIK_DEVICE_IP}
+    ip: ${HIK_DEVICE_IP:10.0.14.11}
     port: ${HIK_DEVICE_PORT:8000}
-    username: ${HIK_DEVICE_USERNAME}
-    password: ${HIK_DEVICE_PASSWORD}
+    username: ${HIK_DEVICE_USERNAME:admin}
+    password: ${HIK_DEVICE_PASSWORD:hk789789}
     rtsp-port: ${HIK_RTSP_PORT:554}
 
   # SDK 配置
   # 支持开发机、服务器、Docker部署，不再依赖固定目录
   sdk:
-    lib-path: ${HIK_SDK_PATH:./lib/win64}
-    log-path: ${HIK_SDK_LOG_PATH:./logs/hksdk}
+#    lib-path: ${HIK_SDK_PATH:E:/project/Myself/hk-nvr-demo/src/main/resources/lib/win64}
+    log-path: ${HIK_SDK_LOG_PATH:E:/project/Myself/hk-nvr-demo/logs/hksdk}
     connect-timeout-ms: ${HIK_CONNECT_TIMEOUT_MS:3000}
     reconnect-interval-ms: ${HIK_RECONNECT_INTERVAL_MS:10000}
+    lib-path: E:/project/Myself/hk-nvr-demo/src/main/resources/lib/win64
 
   # 摄像头配置（可选，生产环境建议从 NVR 查询）
   cameras: []
 
   # 录像配置
   recording:
-    save-dir: ${VIDEO_SAVE_DIR:./data/video}
+    save-dir: ${VIDEO_SAVE_DIR:E:\project\Myself\hk-nvr-demo\video}
     convert-to-mp4: ${VIDEO_CONVERT_MP4:true}
 
   # FFmpeg配置
