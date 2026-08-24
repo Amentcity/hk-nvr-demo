@@ -6,40 +6,29 @@ spring:
     name: hk-nvr-demo
 
 hikvision:
-  # NVR 设备连接信息
+  # NVR 设备连接信息（通过环境变量注入）
   device:
-    ip: 10.0.14.11
-    port: 8000
-    username: admin
-    password: hk789789
-    # RTSP 端口，实时预览走 RTSP + FFmpeg
-    rtsp-port: 554
+    ip: ${HIK_DEVICE_IP}
+    port: ${HIK_DEVICE_PORT:8000}
+    username: ${HIK_DEVICE_USERNAME}
+    password: ${HIK_DEVICE_PASSWORD}
+    rtsp-port: ${HIK_RTSP_PORT:554}
 
-  # SDK 本地库目录（相对于项目根目录或绝对路径）
+  # SDK 配置
   sdk:
-    lib-path: src/main/resources/lib/win64
-    log-path: logs/hksdk
-    connect-timeout-ms: 3000
-    reconnect-interval-ms: 10000
+    lib-path: ${HIK_SDK_PATH}
+    log-path: ${HIK_SDK_LOG_PATH:/data/log/hksdk}
+    connect-timeout-ms: ${HIK_CONNECT_TIMEOUT_MS:3000}
+    reconnect-interval-ms: ${HIK_RECONNECT_INTERVAL_MS:10000}
 
-  # 摄像头通道配置（通道号从 1 开始，对应 NVR 上的通道）
-  cameras:
-    - id: cam-1
-      name: 大门
-      channel: 1
-    - id: cam-2
-      name: 停车场
-      channel: 2
-    - id: cam-3
-      name: 走廊
-      channel: 3
+  # 摄像头配置（可选，生产环境建议从 NVR 查询）
+  cameras: []
 
-  # 录像片段保存目录
+  # 录像配置
   recording:
-    save-dir: recordings
-    # 下载完成后是否用 FFmpeg 将 PS/DAV 转为 MP4（需安装 FFmpeg 并加入 PATH）
-    convert-to-mp4: true
+    save-dir: ${VIDEO_SAVE_DIR:/data/video}
+    convert-to-mp4: ${VIDEO_CONVERT_MP4:true}
 
-  # FFmpeg 可执行文件路径，留空则从 PATH 查找
+  # FFmpeg配置
   ffmpeg:
-    path: ffmpeg
+    path: ${FFMPEG_PATH:ffmpeg}
