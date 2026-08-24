@@ -4,8 +4,6 @@ import com.example.hknvr.model.ApiResponse;
 import com.example.hknvr.model.CameraInfo;
 import com.example.hknvr.model.LivePlayRequest;
 import com.example.hknvr.model.LivePlayResult;
-import com.example.hknvr.model.ClipDownloadRequest;
-import com.example.hknvr.model.ClipDownloadResult;
 import com.example.hknvr.model.RecordingSessionStartResult;
 import com.example.hknvr.model.RecordingSessionStatus;
 import com.example.hknvr.model.RecordingStartRequest;
@@ -18,16 +16,12 @@ import com.example.hknvr.service.LivePreviewService;
 import com.example.hknvr.service.VideoClipDownloadService;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin
 public class NvrController {
 
     private final CameraService cameraService;
@@ -62,42 +56,11 @@ public class NvrController {
     }
 
     /**
-     * 直接返回该摄像头的 RTSP 播放地址，前端播放器直接使用该地址。 
-     */
-    @GetMapping("/live/{cameraId}/rtsp")
-    public ApiResponse<Map<String, String>> liveRtsp(@PathVariable String cameraId,
-                                                    @RequestParam(defaultValue = "true") boolean substream) {
-        Map<String, String> data = new HashMap<>();
-        data.put("cameraId", cameraId);
-        data.put("rtspUrl", livePreviewService.buildRtspStreamUrl(cameraId, substream));
-        return ApiResponse.ok(data);
-    }
-
-    /**
-     * 兼容旧 Mjpeg 入口：返回 RTSP 地址，而不是启动 FFmpeg 代理。
-     */
-    @GetMapping("/live/{cameraId}/mjpeg")
-    public void liveMjpeg(@PathVariable String cameraId,
-                          @RequestParam(defaultValue = "true") boolean substream,
-                          HttpServletResponse response) throws IOException {
-        livePreviewService.streamMjpeg(cameraId, substream, response);
-    }
-
-    /**
-     * 多路同时播放：返回每路 RTSP 地址。
+     * 返回播放会话信息，不直接暴露 RTSP 地址。
      */
     @PostMapping("/live/play")
     public ApiResponse<List<LivePlayResult>> playLive(@RequestBody LivePlayRequest request) {
-        boolean substream = request.getSubstream() == null || request.getSubstream();
-        List<LivePlayResult> results = livePreviewService.buildPlayResults(request.getCameraIds(), substream);
-        return ApiResponse.ok(results);
-    }
-
-    @GetMapping("/live/play")
-    public ApiResponse<List<LivePlayResult>> playLiveGet(
-            @RequestParam List<String> cameraIds,
-            @RequestParam(defaultValue = "true") boolean substream) {
-        List<LivePlayResult> results = livePreviewService.buildPlayResults(cameraIds, substream);
+        List<LivePlayResult> results = livePreviewService.buildPlayResults(request.getCameraIds(), true);
         return ApiResponse.ok(results);
     }
 
@@ -105,12 +68,6 @@ public class NvrController {
     public ApiResponse<Void> stopLiveBatch(@RequestBody LivePlayRequest request) {
         livePreviewService.stopStreams(request.getCameraIds());
         return ApiResponse.ok("Streams stopped", null);
-    }
-
-    @PostMapping("/live/stop/all")
-    public ApiResponse<Void> stopAllLive() {
-        livePreviewService.stopAllStreams();
-        return ApiResponse.ok("All streams stopped", null);
     }
 
     @GetMapping("/live/active")
@@ -137,25 +94,5 @@ public class NvrController {
     @GetMapping("/recordings/active")
     public ApiResponse<List<RecordingSessionStatus>> listActiveRecordings() {
         return ApiResponse.ok(clipDownloadService.listActiveRecordings());
-    }
-
-    @Deprecated
-    @PostMapping("/clips/download")
-    public ApiResponse<List<ClipDownloadResult>> downloadClips(@RequestBody ClipDownloadRequest request) {
-        List<ClipDownloadResult> results = clipDownloadService.downloadClips(request);
-        return ApiResponse.ok(results);
-    }
-
-    @Deprecated
-    @PostMapping("/clips/download/async")
-    public ApiResponse<String> downloadClipsAsync(@RequestBody ClipDownloadRequest request) {
-        CompletableFuture<List<ClipDownloadResult>> future = clipDownloadService.downloadClipsAsync(request);
-        future.whenComplete((results, ex) -> {
-            if (ex != null) {
-                return;
-            }
-            results.stream().filter(ClipDownloadResult::isSuccess).count();
-        });
-        return ApiResponse.ok("Download task submitted", "async");
     }
 }
