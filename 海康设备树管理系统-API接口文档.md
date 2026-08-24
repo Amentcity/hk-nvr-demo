@@ -1,74 +1,283 @@
-# 海康威视 HCNetSDK 设备树管理系统 — API 接口文档
+# 海康威视 NVR 管理系统 API 接口文档
 
-## 项目说明
+版本：main 分支同步版
 
-本项目基于 Spring Boot + 海康威视 HCNetSDK Java JNA 调用，实现 NVR/DVR 设备管理能力，包括设备登录、注销、设备信息查询、设备树获取以及通道列表查询。
+## 1. 项目说明
 
-当前代码包结构：
+本项目基于：
+
+- Spring Boot 2.1.0.RELEASE
+- Java 8
+- 海康威视 HCNetSDK Java JNA
+- Hikvision NVR（目标设备：DS-8864N-R16）
+
+实现能力：
+
+- NVR设备登录/注销
+- 设备状态查询
+- 设备树管理
+- 摄像机通道查询
+- RTSP实时预览
+- 多路视频播放管理
+- 录像会话管理
+- 为后续 Unity 数字孪生提供摄像机数据接口
+
+---
+
+# 2. 项目结构
 
 ```
 com.example.hknvr
+
 ├── controller
-│   ├── DeviceController.java
-│   ├── NvrController.java
-│   └── GlobalExceptionHandler.java
+│   ├── DeviceController
+│   ├── CameraController
+│   ├── LivePreviewController
+│   └── StreamTestController
+│
 ├── service
+│   ├── device
+│   ├── camera
+│   └── stream
+│
 ├── sdk
 ├── dto
 ├── vo
 ├── model
-└── common
-```
-
-核心 REST 控制器：
-`com.example.hknvr.controller.DeviceController`
-
-接口统一前缀：
-
-```
-/api/device
+└── config
 ```
 
 ---
 
-# 接口列表
+# 3. 接口列表
 
-| 方法 | 地址 | 说明 |
-|---|---|---|
-| POST | `/api/device/login` | 登录海康设备 |
-| POST | `/api/device/logout` | 注销设备 |
-| GET | `/api/device/tree/{userId}` | 获取设备树 |
-| GET | `/api/device/channels/{userId}` | 获取通道列表 |
-| GET | `/api/device/info/{userId}` | 获取设备详细信息 |
+|请求方式|路径|说明|
+|-|-|-|
+|GET|/api/status|查询SDK状态|
+|GET|/api/cameras|查询摄像机列表|
+|GET|/api/live/{cameraId}/rtsp|获取RTSP地址|
+|GET|/api/live/{cameraId}/mjpeg|兼容旧预览接口|
+|POST|/api/live/play|多路播放|
+|GET|/api/live/play|GET方式多路播放|
+|POST|/api/live/stop|批量停止播放|
+|POST|/api/live/stop/all|停止全部播放|
+|GET|/api/live/active|查询活动播放|
+|POST|/api/live/{cameraId}/stop|停止单路播放|
+|POST|/api/recordings/start|开始录像|
+|POST|/api/recordings/stop|停止录像|
+|GET|/api/recordings/active|查询录像任务|
+|POST|/api/device/login|登录设备|
+|POST|/api/device/logout|注销设备|
+|GET|/api/device/tree/{userId}|获取设备树|
+|GET|/api/device/channels/{userId}|获取通道|
+|GET|/api/device/info/{userId}|获取设备信息|
+|POST|/api/test/stream/{cameraId}|RTSP测试|
 
 ---
 
-# 1. 登录设备
+# 4. 摄像机接口
+
+## 4.1 查询摄像机列表
+
+### 请求
+
+```
+GET /api/cameras
+```
+
+### 请求参数
+
+无
+
+### 响应体
+
+```json
+[
+ {
+  "cameraId":"cam-1",
+  "cameraName":"大门",
+  "channel":1,
+  "online":true
+ }
+]
+```
+
+---
+
+# 5. 实时播放接口
+
+## 5.1 多路播放
+
+### 请求
+
+```
+POST /api/live/play
+Content-Type: application/json
+```
+
+### 请求参数
+
+```json
+{
+ "cameraIds":["cam-1","cam-2"],
+ "substream":true
+}
+```
+
+参数说明：
+
+|参数|类型|说明|
+|-|-|-|
+|cameraIds|Array|摄像机ID列表|
+|substream|Boolean|是否使用子码流|
+
+### 响应
+
+```json
+{
+ "success":true,
+ "data":[
+  {
+   "cameraId":"cam-1",
+   "channel":1,
+   "rtspUrl":"rtsp://xxx",
+   "streamUrl":"rtsp://xxx"
+  }
+ ]
+}
+```
+
+---
+
+## 5.2 获取单路RTSP
+
+### 请求
+
+```
+GET /api/live/{cameraId}/rtsp
+```
+
+### Path参数
+
+|参数|类型|说明|
+|-|-|-|
+|cameraId|String|摄像机ID|
+
+### 响应
+
+```json
+{
+ "cameraId":"cam-1",
+ "rtspUrl":"rtsp://admin:password@ip:554/Streaming/Channels/101"
+}
+```
+
+---
+
+# 6. Phase 2 实时预览接口
+
+## 6.1 启动实时会话
+
+请求：
+
+```
+POST /api/live/start
+```
+
+参数：
+
+```json
+{
+ "cameraId":"DS8864_CH33"
+}
+```
+
+响应：
+
+```json
+{
+ "sessionId":"live-xxx",
+ "cameraId":"DS8864_CH33",
+ "rtspUrl":"rtsp://xxx",
+ "streamId":"DS8864_CH33",
+ "webrtcUrl":"webrtc://server/live/xxx",
+ "status":"RUNNING"
+}
+```
+
+---
+
+## 6.2 停止实时会话
+
+请求：
+
+```
+DELETE /api/live/{sessionId}
+```
+
+响应：
+
+```json
+true
+```
+
+---
+
+# 7. RTSP测试接口
 
 ## 请求
 
 ```
-POST /api/device/login
-Content-Type: application/json
+POST /api/test/stream/{cameraId}
 ```
 
-请求参数：
+用途：
 
-| 参数 | 类型 | 必填 | 说明 |
-|-|-|-|-|
-| ip | String | 是 | 设备IP地址 |
-| port | Integer | 否 | SDK端口，默认8000 |
-| username | String | 是 | 用户名 |
-| password | String | 是 | 密码 |
+验证：
 
-示例：
+```
+DS-8864N-R16
+ ↓
+RTSP
+ ↓
+FFmpeg
+```
+
+### Path参数
+
+|参数|类型|说明|
+|-|-|-|
+|cameraId|String|摄像机ID|
+
+### 响应
 
 ```json
 {
-  "ip":"192.168.1.100",
-  "port":8000,
-  "username":"admin",
-  "password":"admin123"
+ "sessionId":"test-cam-1",
+ "cameraId":"cam-1",
+ "rtspUrl":"rtsp://xxx",
+ "status":"STARTED"
+}
+```
+
+---
+
+# 8. 设备管理接口
+
+## 登录设备
+
+```
+POST /api/device/login
+```
+
+请求：
+
+```json
+{
+ "ip":"192.168.1.100",
+ "port":8000,
+ "username":"admin",
+ "password":"******"
 }
 ```
 
@@ -82,108 +291,24 @@ Content-Type: application/json
 }
 ```
 
-其中 data 为设备登录 userId。
-
 ---
 
-# 2. 注销设备
-
-```
-POST /api/device/logout
-```
-
-请求：
-
-```json
-{
- "userId":1
-}
-```
-
-说明：释放 HCNetSDK 登录会话。
-
----
-
-# 3. 获取设备树
+## 获取设备树
 
 ```
 GET /api/device/tree/{userId}
 ```
 
-返回完整设备树，包括：
+响应包含：
 
-- 设备基础信息
+- NVR信息
 - 模拟通道
 - IP通道
 - 零通道
 
-示例：
-
-```json
-{
- "code":200,
- "message":"success",
- "data":{
-   "deviceName":"DS-8600",
-   "channels":[
-     {
-       "channelNo":1,
-       "channelName":"Camera1",
-       "type":"ANALOG"
-     }
-   ]
- }
-}
-```
-
 ---
 
-# 4. 获取通道列表
-
-```
-GET /api/device/channels/{userId}
-```
-
-返回：
-
-```json
-[
- {
-  "channelNo":33,
-  "channelName":"IPCamera33",
-  "type":"IP",
-  "enabled":true
- }
-]
-```
-
----
-
-# 5. 获取设备信息
-
-```
-GET /api/device/info/{userId}
-```
-
-返回设备详细配置：
-
-```json
-{
- "userId":1,
- "ipAddress":"192.168.1.100",
- "port":8000,
- "deviceName":"NVR",
- "serialNumber":"xxxx",
- "analogChanNum":16,
- "ipChanNum":32
-}
-```
-
----
-
-# 统一响应 Result
-
-所有接口返回：
+# 9. 统一响应格式
 
 ```json
 {
@@ -195,63 +320,29 @@ GET /api/device/info/{userId}
 
 状态码：
 
-| code | 说明 |
+|code|说明|
 |-|-|
 |200|成功|
 |400|参数错误|
-|404|设备会话不存在|
-|500|服务器或设备错误|
+|404|资源不存在|
+|500|服务器异常|
 
 ---
 
-# 通道类型
+# 10. 当前开发状态
 
-| 类型 | 说明 |
-|-|-|
-| ANALOG | 模拟摄像头 |
-| IP | 网络摄像机 |
-| ZERO | 零通道 |
-| AUDIO | 音频通道 |
-| EXTERNAL | 扩展通道 |
+## 已完成
 
----
+- HCNetSDK设备接入
+- 设备树管理
+- 摄像机管理
+- RTSP实时预览接口
+- 多路播放接口
+- 录像会话接口
+- Phase 2视频链路框架
 
-# 调用流程
+## 后续
 
-```
-前端
- |
- | POST /login
- v
-DeviceController
- |
- v
-DeviceTreeService
- |
- v
-HCNetSDK
- |
- v
-海康设备
-```
-
-典型流程：
-
-1. 调用 `/api/device/login` 获取 userId
-2. 使用 userId 查询设备信息
-3. 调用 `/api/device/tree/{userId}` 展示设备树
-4. 调用 `/api/device/channels/{userId}` 展示摄像头列表
-5. 使用完成后调用 `/api/device/logout`
-
----
-
-# 当前代码同步说明
-
-文档已根据当前仓库代码同步：
-
-- Controller 路径：`com.example.hknvr.controller.DeviceController`
-- API 前缀：`/api/device`
-- 当前接口数量：5个
-- 请求 DTO：`LoginRequest`、`DeviceConfigRequest`
-- 响应 VO：`DeviceTreeVO`、`DeviceInfoVO`、`ChannelVO`
-- 统一返回：`Result<T>`
+- ZLMediaKit WebRTC正式接入
+- Unity数字孪生Camera绑定
+- 建筑/楼层/房间与摄像机映射
