@@ -1,7 +1,7 @@
 package com.example.hknvr.service;
 
 import com.example.hknvr.model.CameraInfo;
-import com.example.hknvr.service.camera.CameraProvider;
+import com.example.hknvr.service.camera.NvrCameraRegistry;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -9,21 +9,27 @@ import java.util.List;
 @Service
 public class CameraService {
 
-    private final CameraProvider cameraProvider;
+    private final NvrCameraRegistry cameraRegistry;
 
-    public CameraService(CameraProvider cameraProvider) {
-        this.cameraProvider = cameraProvider;
+    public CameraService(NvrCameraRegistry cameraRegistry) {
+        this.cameraRegistry = cameraRegistry;
     }
 
+    /**
+     * Returns cameras discovered from Hikvision NVR.
+     */
     public List<CameraInfo> listCameras() {
-        return cameraProvider.queryCameras();
+        return cameraRegistry.list();
     }
 
+    /**
+     * Returns a single camera by unified camera id.
+     */
     public CameraInfo getCameraById(String cameraId) {
-        return listCameras()
-                .stream()
-                .filter(camera -> cameraId.equals(camera.getId()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Unknown camera id: " + cameraId));
+        CameraInfo camera = cameraRegistry.get(cameraId);
+        if (camera == null) {
+            throw new IllegalArgumentException("Unknown camera id: " + cameraId);
+        }
+        return camera;
     }
 }
