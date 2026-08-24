@@ -4,7 +4,9 @@ import com.example.hknvr.config.HikvisionProperties;
 import com.example.hknvr.model.CameraInfo;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Camera provider backed by application configuration.
@@ -22,7 +24,7 @@ public class ConfigCameraProvider implements CameraProvider {
     @Override
     public List<CameraInfo> queryCameras() {
         if (properties.getCameras() == null) {
-            return List.of();
+            return Collections.emptyList();
         }
 
         return properties.getCameras().stream()
@@ -31,7 +33,7 @@ public class ConfigCameraProvider implements CameraProvider {
                         .name(camera.getName())
                         .channel(parseChannel(camera.getChannel()))
                         .build())
-                .toList();
+                .collect(Collectors.toList());
     }
 
     private int parseChannel(String channel) {
