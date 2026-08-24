@@ -25,8 +25,7 @@ public class CameraService {
     }
 
     public List<CameraInfo> listCameras() {
-        List<CameraInfo> cameras = loadCamerasFromNvr();
-        return cameras.isEmpty() ? Collections.emptyList() : cameras;
+        return loadCamerasFromNvr();
     }
 
     public HikvisionProperties.CameraConfig getCameraById(String cameraId) {
@@ -44,7 +43,7 @@ public class CameraService {
         HikvisionProperties.CameraConfig config = new HikvisionProperties.CameraConfig();
         config.setId(camera.getId());
         config.setName(camera.getName());
-        config.setChannel(camera.getChannel());
+        config.setChannel(String.valueOf(camera.getChannel()));
         return config;
     }
 
@@ -130,7 +129,7 @@ public class CameraService {
 
     private HikvisionProperties.CameraConfig findPreferred(int channel) {
         return properties.getCameras().stream()
-                .filter(c -> c.getChannel() == channel)
+                .filter(c -> String.valueOf(channel).equals(c.getChannel()))
                 .findFirst()
                 .orElse(null);
     }
