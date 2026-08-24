@@ -20,30 +20,30 @@ public class HikvisionProperties {
 
     @Data
     public static class Device {
-        private String ip = "192.168.1.64";
+        private String ip;
         private int port = 8000;
-        private String username = "admin";
-        private String password = "";
+        private String username;
+        private String password;
         private int rtspPort = 554;
     }
 
     @Data
     public static class Sdk {
-        private String libPath = "src/main/resources/lib/win64";
-        private String logPath = "logs/hksdk";
+        private String libPath;
+        private String logPath;
         private int connectTimeoutMs = 3000;
         private int reconnectIntervalMs = 10000;
     }
 
     @Data
     public static class Recording {
-        private String saveDir = "recordings";
+        private String saveDir;
         private boolean convertToMp4 = true;
     }
 
     @Data
     public static class Ffmpeg {
-        private String path = "ffmpeg";
+        private String path;
     }
 
     @Data
@@ -51,6 +51,6 @@ public class HikvisionProperties {
         private String id;
         private String name;
         /** NVR 通道号，从 1 开始 */
-        private int channel;
+        private String channel;
     }
 }
